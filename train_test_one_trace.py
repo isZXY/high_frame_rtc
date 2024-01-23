@@ -60,7 +60,7 @@ rates_delay_loss = {}
 print("Input trace: ", trace)
 start = time.time()
 
-env = GymEnv(random_traces=False, input_trace=trace)
+env = GymEnv(random_trace=False, input_trace=trace)
 env = make_vec_env(lambda: env, n_envs=num_envs, seed=42)
 
 save_model_dir = os.path.join(save_dir, save_subfolder)
