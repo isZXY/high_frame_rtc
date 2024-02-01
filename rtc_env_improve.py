@@ -47,7 +47,6 @@ def log_to_linear(value):
 
 
 class GymEnv(gym.Env):
-
     def __init__(self,
                  step_time=200,
                  input_trace="./big_trace/big_trace2.json",
@@ -199,6 +198,7 @@ class GymEnv(gym.Env):
             self.list_of_packets.append(pkt)
             self.packet_record.on_receive(packet_info)
             pkt_counter += 1
+
         #calculate sending rate
         self.sending_rate = self.packet_record.calculate_sending_rate(interval=self.step_time)
 
@@ -209,6 +209,11 @@ class GymEnv(gym.Env):
         self.loss_ratio = self.packet_record.calculate_loss_ratio(interval=self.step_time)
         latest_prediction = self.packet_record.calculate_latest_prediction()
         self.log_prediction = linear_to_log(latest_prediction)
+
+        self.packet_disorder = self.packet_record.calculate_packet_disorder(interval=self.step_time)
+        self.interarrival_time = self.packet_record.calculate_interarrival_time(interval=self.step_time)
+        if self.interarrival_time>0:
+            print("interarrival_time{}".format(self.interarrival_time))
 
         self.state_multidim = self.state_multidim.clone().detach()
         self.state_multidim = torch.roll(self.state_multidim, -1, dims=-1)
@@ -266,6 +271,7 @@ class GymEnv(gym.Env):
         receiving_rate = self.receiving_rate / 1000  #from bps in kbps
         delay = self.delay
         loss_ratio = self.loss_ratio
+        # jitter = pass
         
         if (bandwidth <= 0.00001):
             bandwidth_util = 0

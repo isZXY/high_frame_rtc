@@ -39,7 +39,7 @@ class PacketRecord:
 
         if packet_info.ssrc in self.last_seqNo:
             loss_count = max(0,
-                packet_info.sequence_number - self.last_seqNo[packet_info.ssrc] - 1)
+                             packet_info.sequence_number - self.last_seqNo[packet_info.ssrc] - 1)
             self.interpolated_packet_sizes[packet_info.ssrc].append(packet_info.payload_size)
             # print(self.interpolated_packet_sizes)
         self.last_seqNo[packet_info.ssrc] = packet_info.sequence_number
@@ -65,7 +65,11 @@ class PacketRecord:
             'delay': delay,  # ms
             'payload_byte': packet_info.payload_size,  # B
             'loss_count': loss_count,  # p
-            'bandwidth_prediction': packet_info.bandwidth_prediction  # bps
+            'bandwidth_prediction': packet_info.bandwidth_prediction , # bps
+            'sequence_number': packet_info.sequence_number,
+            'send_timestamp': packet_info.send_timestamp
+            # 'interarrival_time':
+
         }
         self.packet_list.append(packet_result)
         self.packet_num += 1
@@ -85,6 +89,36 @@ class PacketRecord:
 
         return result_list
 
+
+    def calculate_interarrival_time(self,interval=0):
+        send_time = self._get_result_list(interval=interval,key = 'send_timestamp')
+        arrival_time = self._get_result_list(interval=interval,key = 'timestamp')
+        single_packet_delay = [x - y for x, y in zip(arrival_time, send_time)]
+        diff_delay = [0] * (len(single_packet_delay)-1)
+        # print(single_packet_delay)
+        for i in range(len(single_packet_delay)-1, 0, -1):
+            diff_delay[i-1] = single_packet_delay[i-1]-single_packet_delay[i]
+
+        # 找到连续3个> 500 ms的包
+        cnt = 0
+        # print(diff_delay)
+        if len(diff_delay) < 2:
+            return 0
+        for i in range(len(diff_delay) -1 ):
+            if diff_delay[i] > 100 and diff_delay[i + 1] > 100 :
+                cnt += 1
+
+        return cnt
+
+
+        pass
+
+
+    def calculate_packet_disorder(self,interval=0):
+        packet_order = self._get_result_list(interval=interval,key = 'sequence_number')
+        # print("packet_order:{}".format(packet_order))
+        pass
+
     def calculate_average_delay(self, interval=0):
         '''
         Calulate the average delay in the last interval time,
@@ -94,7 +128,6 @@ class PacketRecord:
         delay_list = self._get_result_list(interval=interval, key='delay')
         # print(delay_list)
         if delay_list:
-            # print("Delay list ", delay_list, "base delay ", self.base_delay_ms)
             return np.mean(delay_list) - self.base_delay_ms
         else:
             return 0
@@ -158,7 +191,6 @@ class PacketRecord:
             return rate
         else:
             return 0
-
 
     def calculate_latest_prediction(self):
         '''
